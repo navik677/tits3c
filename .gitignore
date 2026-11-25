@@ -5,3 +5,4 @@
 /port/*
 !/port/tools/
 !/port/README.md
+!/port/HANDOFF.md
