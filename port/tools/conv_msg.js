@@ -4,7 +4,9 @@ const {parseMbin,buildMbin}=require('./msg_lib.js');
 const pcDialogs=require('./pc_dialogs.js');
 const {align}=require('./align.js');
 const {map}=require('./dec.js');
-const toUtf8=buf=>{let s='';for(const c of buf)s+=map[c]||String.fromCharCode(c);return Buffer.from(s,'utf8')};
+const {toSjis}=require('./sjis.js');
+// PC 1-byte RU encoding -> Unicode -> Shift-JIS (Vita text encoding)
+const pcToSjis=buf=>{let s='';for(const c of buf)s+=map[c]||String.fromCharCode(c);return toSjis(s)};
 const TOK=/^(?:#\d*[A-Za-z])+/;
 function splitSeg(b){const out=[];let s=0;for(let i=0;i<b.length-1;i++){if(b[i]===2&&b[i+1]===3){out.push(b.subarray(s,i+1));s=i+1;}}out.push(b.subarray(s));return out;}
 function convEntry(vE,pcC){
@@ -23,7 +25,7 @@ function convEntry(vE,pcC){
     const vpre=(vt.match(TOK)||[''])[0];
     const ppre=(pt.match(TOK)||[''])[0];
     const ptext=pp.subarray(ppre.length); // ends with 02
-    parts.push(lead,Buffer.from(vpre,'latin1'),toUtf8(ptext));
+    parts.push(lead,Buffer.from(vpre,'latin1'),pcToSjis(ptext));
   }
   parts.push(tail);return Buffer.concat(parts);
 }
@@ -35,7 +37,7 @@ if(require.main===module){
     const base=f.slice(0,-5).toUpperCase();const cand=fs.readdirSync(P).find(x=>x.replace(/ +\./,'.').toUpperCase()===base+'._SN');if(!cand)continue;
     const m=parseMbin(fs.readFileSync(V+f));const d=pcDialogs(fs.readFileSync(P+cand));
     if(m.n===0)continue;const al=align(m.ents,d);let bad=0,conv=0;
-    const ne=m.ents.map((e,i)=>{if(al[i]<0)return e;const r=convEntry(e,d[al[i]].c);if(!r){bad++;return e}conv++;return r});
+    const ne=m.ents.map((e,i)=>{if(al[i]<0)return e;let r;try{r=convEntry(e,d[al[i]].c)}catch(err){r=null};if(!r){bad++;return e}conv++;return r});
     fs.writeFileSync(path.join(O,f),buildMbin(m.kinds,ne));files++;ents+=conv;skipE+=m.n-conv;
   }
   console.log('files',files,'entries converted',ents,'kept English (segment mismatch)',skipE);

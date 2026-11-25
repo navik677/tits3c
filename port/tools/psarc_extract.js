@@ -1,6 +1,6 @@
 // Minimal PSARC (v1.x, zlib) extractor. Usage: node psarc_extract.js <archive> <outDir>
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
-const [,, arc, out] = process.argv;
+const [,, arc, out, ...prefixes] = process.argv; // optional: only extract paths starting with any prefix
 const fd = fs.openSync(arc, 'r');
 const rd = (pos, len) => { const b = Buffer.alloc(len); let n = 0; while (n < len) { const r = fs.readSync(fd, b, n, len - n, pos + n); if (!r) break; n += r; } return b.subarray(0, n); };
 const h = rd(0, 32);
@@ -35,6 +35,7 @@ fs.mkdirSync(out, { recursive: true });
 let n = 0;
 for (let i = 1; i < nEnt; i++) {
   const nm = (names[i - 1] || ('unnamed_' + i)).replace(/^[\\/]+/, '');
+  if (prefixes.length && !prefixes.some(p => nm.startsWith(p))) continue;
   const dest = path.join(out, nm);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.writeFileSync(dest, read(ents[i]));
