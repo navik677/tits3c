@@ -1,0 +1,7 @@
+# Only tooling + docs are tracked; game data / translation assets are copyrighted and huge.
+/*
+!/.gitignore
+!/port/
+/port/*
+!/port/tools/
+!/port/README.md
